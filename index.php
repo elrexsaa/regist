@@ -36,7 +36,7 @@
 
         <?php
         // --- DB CONNECTION ---
-        $host = "mysql.railway.internal
+        $host = "mysql.railway.internal"
         $user = "root";
         $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
         $db   = "railway";
