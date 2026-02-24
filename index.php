@@ -1,209 +1,220 @@
+<?php
+/**
+ * VIP REGISTRATION SYSTEM 2026
+ * Anti-Blank & Auto-Database Sync
+ */
+
+// 1. CEGAH HALAMAN MATI (Error Handling)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Kita pakai notif custom biar UI tetep rapi
+
+// 2. CONFIG DATABASE (Railway Internal)
+$host = "mysql.railway.internal"; 
+$user = "root";
+$pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
+$db   = "railway";
+$port = "3306";
+
+// Mencoba koneksi dengan peredam error (@)
+$koneksi = @mysqli_connect($host, $user, $pass, $db, $port);
+
+$notif_type = ""; 
+$notif_msg = "";
+
+if (!$koneksi) {
+    $notif_type = "error";
+    $notif_msg = "Database Offline: " . mysqli_connect_error();
+} else {
+    // 3. AUTO CREATE TABLE (Jika belum ada)
+    $create_sql = "CREATE TABLE IF NOT EXISTS pendaftar (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nama VARCHAR(100),
+        email VARCHAR(100),
+        username_tele VARCHAR(100),
+        wa_nomor VARCHAR(20),
+        wa_jenis VARCHAR(50),
+        wa_umur INT,
+        wa_status VARCHAR(50),
+        wa_alasan TEXT,
+        perangkat VARCHAR(50),
+        waktu_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )";
+    mysqli_query($koneksi, $create_sql);
+}
+
+// 4. PROSES SIMPAN DATA
+if (isset($_POST['daftar'])) {
+    if (!$koneksi) {
+        $notif_type = "error";
+        $notif_msg = "Gagal kirim: Database belum terkoneksi!";
+    } else {
+        $nama = mysqli_real_escape_string($koneksi, $_POST['nama']);
+        $email = mysqli_real_escape_string($koneksi, $_POST['email']);
+        $tele = mysqli_real_escape_string($koneksi, $_POST['username_tele']);
+        $wa = mysqli_real_escape_string($koneksi, $_POST['wa_nomor']);
+        $wa_jenis = $_POST['wa_jenis'];
+        $wa_umur = $_POST['wa_umur_val'];
+        $wa_status = $_POST['wa_status'];
+        $wa_alasan = mysqli_real_escape_string($koneksi, $_POST['wa_alasan']);
+        $perangkat = $_POST['perangkat'];
+
+        $sql = "INSERT INTO pendaftar (nama, email, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
+                VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
+        
+        if (mysqli_query($koneksi, $sql)) {
+            $notif_type = "success";
+            $notif_msg = "Access Granted! Data anda berhasil diamankan.";
+        } else {
+            $notif_type = "error";
+            $notif_msg = "System Failure: " . mysqli_error($koneksi);
+        }
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIP Registration | Freelance WhatsApp 2026</title>
+    <title>VIP Registration | Secure Line 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .gradient-text { background: linear-gradient(90deg, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .email-suggestion { cursor: pointer; transition: all 0.2s; }
-        .email-suggestion:hover { background: rgba(96, 165, 254, 0.2); }
-        .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; }
-        .age-picker div { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
-        .age-picker div.active { opacity: 1; font-weight: bold; color: #60a5fa; transform: scale(1.2); }
+        .input-style { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); padding: 1rem 1.5rem; border-radius: 1rem; outline: none; transition: 0.3s; }
+        .input-style:focus { border-color: #60a5fa; box-shadow: 0 0 15px rgba(96,165,254,0.2); }
+        .age-picker { height: 100px; overflow-y: scroll; scroll-snap-type: y mandatory; border-radius: 1rem; background: rgba(0,0,0,0.2); }
+        .age-picker div { scroll-snap-align: center; height: 33px; display: flex; align-items: center; justify-content: center; opacity: 0.3; font-size: 0.8rem; }
+        .age-picker div.active { opacity: 1; color: #60a5fa; font-weight: bold; transform: scale(1.2); }
+        .suggestion-item { padding: 10px 20px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .suggestion-item:hover { background: rgba(96,165,254,0.1); }
     </style>
 </head>
-<body class="text-slate-200 min-h-screen flex items-center justify-center p-6">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full"></div>
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute top-0 left-0 w-96 h-96 bg-blue-600/10 blur-[120px]"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-600/10 blur-[120px]"></div>
     </div>
 
-    <div class="glass max-w-2xl w-full rounded-[32px] p-8 md:p-12 shadow-2xl">
+    <div class="glass w-full max-w-xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative">
         <div class="text-center mb-10">
-            <span class="px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold tracking-widest uppercase">Member Access</span>
-            <h1 class="text-4xl md:text-5xl font-extrabold mt-4 mb-2 tracking-tight">Enter <span class="gradient-text">Registration</span></h1>
-            <p class="text-slate-400">Silakan lengkapi data di bawah ini.</p>
+            <span class="text-[10px] font-bold tracking-[0.3em] uppercase text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full">Secure Connection</span>
+            <h1 class="text-4xl font-extrabold mt-4 tracking-tighter">VIP <span class="gradient-text">Protocol</span></h1>
+            <p class="text-slate-400 text-sm mt-2 font-light">Input identity for authorization system.</p>
         </div>
 
-        <?php
-        // --- DB CONNECTION ---
-        $host = "mysql.railway.internal"; 
-        $user = "root";
-        $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
-        $db   = "railway";
-        $port = "3306";
-        
-        $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
+        <?php if ($notif_type == "success"): ?>
+            <div class="bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center text-sm animate-pulse">
+                <?= $notif_msg ?>
+            </div>
+        <?php elseif ($notif_type == "error"): ?>
+            <div class="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center text-[10px] italic">
+                <?= $notif_msg ?>
+            </div>
+        <?php endif; ?>
 
-        // --- AUTO CREATE TABLE (JALUR LANGIT) ---
-        $auto_table = "CREATE TABLE IF NOT EXISTS pendaftar (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nama VARCHAR(100),
-            email VARCHAR(100),
-            username_tele VARCHAR(100),
-            wa_nomor VARCHAR(20),
-            wa_jenis VARCHAR(50),
-            wa_umur INT,
-            wa_status VARCHAR(50),
-            wa_alasan TEXT,
-            perangkat VARCHAR(50),
-            waktu_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )";
-        mysqli_query($koneksi, $auto_table);
-
-        if (isset($_POST['daftar'])) {
-            $nama = $_POST['nama']; $email = $_POST['email']; $tele = $_POST['username_tele'];
-            $wa = $_POST['wa_nomor']; $wa_jenis = $_POST['wa_jenis']; $wa_umur = $_POST['wa_umur_val'];
-            $wa_status = $_POST['wa_status']; $wa_alasan = $_POST['wa_alasan']; $perangkat = $_POST['perangkat'];
-
-            $query = "INSERT INTO pendaftar (nama, email, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
-                      VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
-            
-            if (mysqli_query($koneksi, $query)) {
-                echo "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>System: Data Authorized Successfully.</div>";
-            } else {
-                echo "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error: " . mysqli_error($koneksi) . "</div>";
-            }
-        }
-        ?>
-
-        <form action="" method="POST" class="space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="group">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Full Identity</label>
-                    <input type="text" name="nama" required placeholder="John Doe" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-600">
+        <form action="" method="POST" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 mb-2 block">Full Name</label>
+                    <input type="text" name="nama" required placeholder="Ex: Alex Johnson" class="input-style">
                 </div>
-                <div class="relative group">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
-                    <input type="email" id="emailInput" name="email" required placeholder="name" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-600">
-                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl overflow-hidden z-50"></div>
+                <div class="relative">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 mb-2 block">Email Verify</label>
+                    <input type="email" id="emailInput" name="email" required placeholder="name@" class="input-style">
+                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl z-50 overflow-hidden text-xs"></div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Telegram Username</label>
-                    <div class="relative">
-                        <span class="absolute left-5 top-4 text-blue-500 font-bold">@</span>
-                        <input type="text" name="username_tele" required placeholder="username" class="w-full glass py-4 pl-10 pr-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
-                    </div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 mb-2 block">Telegram ID</label>
+                    <input type="text" name="username_tele" required placeholder="@username" class="input-style">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">WhatsApp Secure Line</label>
-                    <input type="number" name="wa_nomor" required placeholder="628..." class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-2 mb-2 block">WhatsApp Number</label>
+                    <input type="number" name="wa_nomor" required placeholder="628..." class="input-style">
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 ml-1 text-center">Account Age (Months)</label>
+            <div class="grid grid-cols-2 gap-4 items-center">
+                <div class="text-center">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase mb-2 block">WA Age (Months)</label>
                     <input type="hidden" name="wa_umur_val" id="wa_umur_val" value="1">
-                    <div class="age-picker glass rounded-2xl" id="agePicker"></div>
+                    <div class="age-picker" id="agePicker"></div>
                 </div>
-                <div class="flex flex-col justify-between">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Line Type</label>
-                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none bg-transparent">
-                            <option class="bg-[#1e293b]" value="WhatsApp Biasa">Standard Account</option>
-                            <option class="bg-[#1e293b]" value="WhatsApp Bisnis">Business Protocol</option>
-                        </select>
-                    </div>
-                    <div class="mt-4">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Account Health</label>
-                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-transparent">
-                            <option class="bg-[#1e293b]" value="Lancar">Optimized / Clean</option>
-                            <option class="bg-[#1e293b]" value="Sering Delay">Slight Latency</option>
-                            <option class="bg-[#1e293b]" value="Pernah Terblokir">Flagged Previously</option>
-                        </select>
-                    </div>
+                <div class="space-y-3">
+                    <select name="wa_jenis" class="input-style text-sm py-2 bg-[#0f172a]">
+                        <option value="Standard">Standard Account</option>
+                        <option value="Business">Business Account</option>
+                    </select>
+                    <select name="wa_status" class="input-style text-sm py-2 bg-[#0f172a]">
+                        <option value="Optimized">Status: Optimized</option>
+                        <option value="Latency">Status: Latency</option>
+                        <option value="Flagged">Status: Flagged</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Status Reason (Optional)</label>
-                    <textarea name="wa_alasan" rows="2" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"></textarea>
-                </div>
+            <div>
+                <textarea name="wa_alasan" placeholder="Additional Notes (Optional)" class="input-style h-20 resize-none text-sm"></textarea>
+            </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-4 p-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Hardware Interface:</span>
-                    <div class="flex gap-4">
-                        <?php foreach(['Android', 'iOS', 'Other'] as $dev): ?>
-                        <label class="flex items-center space-x-3 cursor-pointer group">
-                            <input type="radio" name="perangkat" value="<?= $dev ?>" <?= $dev=='Android'?'checked':'' ?> class="hidden peer">
-                            <div class="w-5 h-5 border-2 border-slate-600 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all"></div>
-                            <span class="text-sm font-semibold text-slate-400 peer-checked:text-blue-400"><?= $dev ?></span>
-                        </label>
-                        <?php endforeach; ?>
-                    </div>
+            <div class="flex justify-between items-center px-2">
+                <span class="text-[10px] font-bold text-slate-500 uppercase">Hardware:</span>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs">
+                        <input type="radio" name="perangkat" value="Android" checked class="accent-blue-500"> Android
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer text-xs">
+                        <input type="radio" name="perangkat" value="iOS" class="accent-blue-500"> iOS
+                    </label>
                 </div>
             </div>
 
-            <button type="submit" name="daftar" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase tracking-widest shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_40px_rgba(37,99,235,0.5)] transition-all transform active:scale-[0.98]">
-                Submit Application
+            <button type="submit" name="daftar" class="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-[1.02] active:scale-95 transition-all text-white font-black tracking-widest text-sm shadow-xl shadow-blue-500/20">
+                AUTHORIZE REGISTRATION
             </button>
         </form>
     </div>
 
     <script>
-        const emailInput = document.getElementById('emailInput');
-        const suggestionBox = document.getElementById('emailSuggestions');
-        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'yahoo.co.id', 'admin.uk'];
+        // --- Email Suggestions ---
+        const emailIn = document.getElementById('emailInput');
+        const suggest = document.getElementById('emailSuggestions');
+        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'admin.uk'];
 
-        emailInput.addEventListener('input', (e) => {
-            const val = e.target.value;
-            if (val.includes('@') && !val.split('@')[1].includes('.')) {
-                const name = val.split('@')[0];
-                suggestionBox.innerHTML = domains.map(d => `<div class="email-suggestion py-3 px-6 text-sm" onclick="selectEmail('${name}@${d}')">${name}<span class="text-blue-400 font-bold">@${d}</span></div>`).join('');
-                suggestionBox.classList.remove('hidden');
-            } else {
-                suggestionBox.classList.add('hidden');
-            }
+        emailIn.addEventListener('input', () => {
+            const v = emailIn.value;
+            if(v.includes('@') && !v.split('@')[1].includes('.')) {
+                const name = v.split('@')[0];
+                suggest.innerHTML = domains.map(d => `<div class="suggestion-item" onclick="setE('${name}@${d}')">${name}<span class="text-blue-400">@${d}</span></div>`).join('');
+                suggest.classList.remove('hidden');
+            } else { suggest.classList.add('hidden'); }
         });
+        function setE(v) { emailIn.value = v; suggest.classList.add('hidden'); }
 
-        function selectEmail(val) {
-            emailInput.value = val;
-            suggestionBox.classList.add('hidden');
-        }
-
+        // --- Age Scroll Picker ---
         const picker = document.getElementById('agePicker');
-        const valInput = document.getElementById('wa_umur_val');
-        
+        const inputU = document.getElementById('wa_umur_val');
         for(let i=0; i<=60; i++) {
-            const item = document.createElement('div');
-            item.innerText = i + " Mo";
-            item.dataset.val = i;
-            picker.appendChild(item);
+            const d = document.createElement('div');
+            d.innerText = i + " Mo"; d.dataset.v = i;
+            picker.appendChild(d);
         }
-
         picker.addEventListener('scroll', () => {
             const items = picker.querySelectorAll('div');
-            let closest = null;
-            let minDiff = Infinity;
-
-            items.forEach(item => {
-                const diff = Math.abs((item.offsetTop - picker.offsetTop) - picker.scrollTop - 40);
-                item.classList.remove('active');
-                if(diff < minDiff) {
-                    minDiff = diff;
-                    closest = item;
-                }
+            items.forEach(it => {
+                const diff = Math.abs((it.offsetTop - picker.offsetTop) - picker.scrollTop - 33);
+                it.classList.remove('active');
+                if(diff < 15) { it.classList.add('active'); inputU.value = it.dataset.v; }
             });
-
-            if(closest) {
-                closest.classList.add('active');
-                valInput.value = closest.dataset.val;
-            }
         });
-        picker.scrollTop = 1; 
+        picker.scrollTop = 1;
     </script>
 </body>
 </html>
