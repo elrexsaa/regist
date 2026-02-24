@@ -43,21 +43,7 @@
         
         $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
 
-        // --- AUTO CREATE TABLE (JALUR LANGIT) ---
-        $auto_table = "CREATE TABLE IF NOT EXISTS pendaftar (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nama VARCHAR(100),
-            email VARCHAR(100),
-            username_tele VARCHAR(100),
-            wa_nomor VARCHAR(20),
-            wa_jenis VARCHAR(50),
-            wa_umur INT,
-            wa_status VARCHAR(50),
-            wa_alasan TEXT,
-            perangkat VARCHAR(50),
-            waktu_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )";
-        mysqli_query($koneksi, $auto_table);
+        mysqli_query($koneksi);
 
         if (isset($_POST['daftar'])) {
             $nama = $_POST['nama']; $email = $_POST['email']; $tele = $_POST['username_tele'];
