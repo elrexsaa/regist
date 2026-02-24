@@ -1,47 +1,3 @@
-<?php
-// --- CONFIG DATABASE (RAILWAY) ---
-$host = "mysql.railway.internal"; 
-$user = "root";
-$pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
-$db   = "railway";
-$port = "3306";
-
-// Pakai @ supaya kalau koneksi gagal, halaman nggak blank putih
-$koneksi = @mysqli_connect($host, $user, $pass, $db, $port);
-
-$notif_pesan = "";
-$notif_tipe = "";
-
-// Cek apakah tombol daftar diklik
-if (isset($_POST['daftar'])) {
-    if (!$koneksi) {
-        $notif_pesan = "Koneksi ke Database Gagal! Pastikan tabel sudah dibuat manual di Railway.";
-        $notif_tipe = "error";
-    } else {
-        $nama = mysqli_real_escape_string($koneksi, $_POST['nama']);
-        $email = mysqli_real_escape_string($koneksi, $_POST['email']);
-        $tele = mysqli_real_escape_string($koneksi, $_POST['username_tele']);
-        $wa = mysqli_real_escape_string($koneksi, $_POST['wa_nomor']);
-        $wa_jenis = $_POST['wa_jenis'];
-        $wa_umur = $_POST['wa_umur_val'];
-        $wa_status = $_POST['wa_status'];
-        $wa_alasan = mysqli_real_escape_string($koneksi, $_POST['wa_alasan']);
-        $perangkat = $_POST['perangkat'];
-
-        $query = "INSERT INTO pendaftar (nama, email, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
-                  VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
-        
-        if (mysqli_query($koneksi, $query)) {
-            $notif_pesan = "System: Data Authorized Successfully.";
-            $notif_tipe = "success";
-        } else {
-            $notif_pesan = "Error Simpan: " . mysqli_error($koneksi);
-            $notif_tipe = "error";
-        }
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -51,20 +7,19 @@ if (isset($_POST['daftar'])) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .gradient-text { background: linear-gradient(90deg, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .email-suggestion { cursor: pointer; transition: all 0.2s; }
         .email-suggestion:hover { background: rgba(96, 165, 254, 0.2); }
-        .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; background: rgba(0,0,0,0.2); border-radius: 1rem; }
+        .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; }
         .age-picker div { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
         .age-picker div.active { opacity: 1; font-weight: bold; color: #60a5fa; transform: scale(1.2); }
-        input, textarea, select { background: rgba(255,255,255,0.05) !important; color: white !important; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="text-slate-200 min-h-screen flex items-center justify-center p-6">
 
     <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10">
         <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full"></div>
@@ -78,11 +33,47 @@ if (isset($_POST['daftar'])) {
             <p class="text-slate-400">Silakan lengkapi data di bawah ini.</p>
         </div>
 
-        <?php if ($notif_pesan != ""): ?>
-            <div class="glass <?= $notif_tipe == 'success' ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-red-500/20 border-red-500/50 text-red-400' ?> p-4 rounded-2xl mb-8 text-center font-semibold">
-                <?= $notif_pesan ?>
-            </div>
-        <?php endif; ?>
+        <?php
+        // --- DB CONNECTION ---
+        $host = "mysql.railway.internal"; 
+        $user = "root";
+        $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
+        $db   = "railway";
+        $port = "3306";
+        
+        $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
+
+        // --- AUTO CREATE TABLE (JALUR LANGIT) ---
+        $auto_table = "CREATE TABLE IF NOT EXISTS pendaftar (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nama VARCHAR(100),
+            email VARCHAR(100),
+            username_tele VARCHAR(100),
+            wa_nomor VARCHAR(20),
+            wa_jenis VARCHAR(50),
+            wa_umur INT,
+            wa_status VARCHAR(50),
+            wa_alasan TEXT,
+            perangkat VARCHAR(50),
+            waktu_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )";
+        mysqli_query($koneksi, $auto_table);
+
+        if (isset($_POST['daftar'])) {
+            $nama = $_POST['nama']; $email = $_POST['email']; $tele = $_POST['username_tele'];
+            $wa = $_POST['wa_nomor']; $wa_jenis = $_POST['wa_jenis']; $wa_umur = $_POST['wa_umur_val'];
+            $wa_status = $_POST['wa_status']; $wa_alasan = $_POST['wa_alasan']; $perangkat = $_POST['perangkat'];
+
+            $query = "INSERT INTO pendaftar (nama, email, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
+                      VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
+            
+            if (mysqli_query($koneksi, $query)) {
+                echo "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>System: Data Authorized Successfully.</div>";
+            } else {
+                echo "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error: " . mysqli_error($koneksi) . "</div>";
+            }
+        }
+        ?>
 
         <form action="" method="POST" class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -93,7 +84,7 @@ if (isset($_POST['daftar'])) {
                 <div class="relative group">
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
                     <input type="email" id="emailInput" name="email" required placeholder="name" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-600">
-                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl overflow-hidden z-50 shadow-2xl bg-slate-900"></div>
+                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl overflow-hidden z-50"></div>
                 </div>
             </div>
 
@@ -115,42 +106,44 @@ if (isset($_POST['daftar'])) {
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 ml-1 text-center">Account Age (Months)</label>
                     <input type="hidden" name="wa_umur_val" id="wa_umur_val" value="1">
-                    <div class="age-picker" id="agePicker"></div>
+                    <div class="age-picker glass rounded-2xl" id="agePicker"></div>
                 </div>
                 <div class="flex flex-col justify-between">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Line Type</label>
-                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none">
-                            <option class="bg-slate-900" value="WhatsApp Biasa">Standard Account</option>
-                            <option class="bg-slate-900" value="WhatsApp Bisnis">Business Protocol</option>
+                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none bg-transparent">
+                            <option class="bg-[#1e293b]" value="WhatsApp Biasa">Standard Account</option>
+                            <option class="bg-[#1e293b]" value="WhatsApp Bisnis">Business Protocol</option>
                         </select>
                     </div>
                     <div class="mt-4">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Account Health</label>
-                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-                            <option class="bg-slate-900" value="Lancar">Optimized / Clean</option>
-                            <option class="bg-slate-900" value="Sering Delay">Slight Latency</option>
-                            <option class="bg-slate-900" value="Pernah Terblokir">Flagged Previously</option>
+                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-transparent">
+                            <option class="bg-[#1e293b]" value="Lancar">Optimized / Clean</option>
+                            <option class="bg-[#1e293b]" value="Sering Delay">Slight Latency</option>
+                            <option class="bg-[#1e293b]" value="Pernah Terblokir">Flagged Previously</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Status Reason (Optional)</label>
-                <textarea name="wa_alasan" rows="2" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"></textarea>
-            </div>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Status Reason (Optional)</label>
+                    <textarea name="wa_alasan" rows="2" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"></textarea>
+                </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-4 p-2">
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Hardware Interface:</span>
-                <div class="flex gap-4">
-                    <?php foreach(['Android', 'iOS', 'Other'] as $dev): ?>
-                    <label class="flex items-center space-x-3 cursor-pointer group">
-                        <input type="radio" name="perangkat" value="<?= $dev ?>" <?= $dev=='Android'?'checked':'' ?> class="hidden peer">
-                        <div class="w-5 h-5 border-2 border-slate-600 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all"></div>
-                        <span class="text-sm font-semibold text-slate-400 peer-checked:text-blue-400"><?= $dev ?></span>
-                    </label>
-                    <?php endforeach; ?>
+                <div class="flex flex-wrap items-center justify-between gap-4 p-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Hardware Interface:</span>
+                    <div class="flex gap-4">
+                        <?php foreach(['Android', 'iOS', 'Other'] as $dev): ?>
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="radio" name="perangkat" value="<?= $dev ?>" <?= $dev=='Android'?'checked':'' ?> class="hidden peer">
+                            <div class="w-5 h-5 border-2 border-slate-600 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all"></div>
+                            <span class="text-sm font-semibold text-slate-400 peer-checked:text-blue-400"><?= $dev ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
 
