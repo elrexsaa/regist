@@ -1,30 +1,15 @@
 <?php
-// --- 1. HANDLING ERROR AGAR TIDAK BLANK ---
+// --- 1. HANDLING ERROR ---
 ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// --- 2. KONEKSI DATABASE (OTOMATIS VIA RAILWAY VARIABLE) ---
+// --- 2. KONEKSI DATABASE ---
 $url_db = getenv('MYSQL_URL');
-
 if ($url_db) {
-    // Parsing URL Sakti Railway
     $db_parts = parse_url($url_db);
-    $host = $db_parts['host'];
-    $user = $db_parts['user'];
-    $pass = $db_parts['pass'];
-    $db   = ltrim($db_parts['path'], '/');
-    $port = $db_parts['port'];
-    
-    $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
+    $koneksi = mysqli_connect($db_parts['host'], $db_parts['user'], $db_parts['pass'], ltrim($db_parts['path'], '/'), $db_parts['port']);
 } else {
-    // Fallback ke host manual jika variable belum di-set
-    $host = "mysql.railway.internal"; 
-    $user = "root";
-    $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
-    $db   = "railway";
-    $port = "3306";
-    $koneksi = @mysqli_connect($host, $user, $pass, $db, $port);
+    $koneksi = @mysqli_connect("mysql.railway.internal", "root", "BYNoqtolFWcLzImeCpMaisrFtEUhDJor", "railway", "3306");
 }
 
 $notif_html = "";
@@ -32,7 +17,7 @@ $notif_html = "";
 // --- 3. LOGIKA SIMPAN DATA ---
 if (isset($_POST['daftar'])) {
     if (!$koneksi) {
-        $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Gagal: Database tidak merespon. Cek Variables MYSQL_URL!</div>";
+        $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Koneksi Database Gagal.</div>";
     } else {
         $nama = mysqli_real_escape_string($koneksi, $_POST['nama']);
         $email = mysqli_real_escape_string($koneksi, $_POST['email']);
@@ -48,9 +33,9 @@ if (isset($_POST['daftar'])) {
                   VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
         
         if (mysqli_query($koneksi, $query)) {
-            $notif_html = "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>System: Data Authorized Successfully.</div>";
+            $notif_html = "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>Registrasi Berhasil Disimpan!</div>";
         } else {
-            $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error: " . mysqli_error($koneksi) . "</div>";
+            $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Terjadi kesalahan sistem.</div>";
         }
     }
 }
@@ -60,19 +45,19 @@ if (isset($_POST['daftar'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIP Registration | Freelance WhatsApp 2026</title>
+    <title>Pendaftaran VIP | Freelance WhatsApp 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; overflow-x: hidden; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .gradient-text { background: linear-gradient(90deg, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .email-suggestion { cursor: pointer; transition: all 0.2s; }
-        .email-suggestion:hover { background: rgba(96, 165, 254, 0.2); }
-        .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; }
-        .age-picker div { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
+        .email-suggestion { cursor: pointer; transition: all 0.2s; background: #1e293b; }
+        .email-suggestion:hover { background: #334155; color: #60a5fa; }
+        .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; position: relative; }
+        .age-picker div { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; cursor: pointer; }
         .age-picker div.active { opacity: 1; font-weight: bold; color: #60a5fa; transform: scale(1.2); }
     </style>
 </head>
@@ -83,104 +68,119 @@ if (isset($_POST['daftar'])) {
         <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full"></div>
     </div>
 
-    <div class="glass max-w-2xl w-full rounded-[32px] p-8 md:p-12 shadow-2xl">
+    <div class="glass max-w-2xl w-full rounded-[32px] p-8 md:p-12 shadow-2xl my-10">
         <div class="text-center mb-10">
-            <span class="px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold tracking-widest uppercase">Member Access</span>
-            <h1 class="text-4xl md:text-5xl font-extrabold mt-4 mb-2 tracking-tight">Enter <span class="gradient-text">Registration</span></h1>
-            <p class="text-slate-400">Silakan lengkapi data di bawah ini.</p>
+            <span class="px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold tracking-widest uppercase">Akses Anggota</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold mt-4 mb-2 tracking-tight">Formulir <span class="gradient-text">Registrasi</span></h1>
+            <p class="text-slate-400">Silakan lengkapi data valid di bawah ini.</p>
         </div>
 
         <?= $notif_html ?>
 
         <form action="" method="POST" class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="group">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Full Identity</label>
-                    <input type="text" name="nama" required placeholder="John Doe" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-600">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Identitas Lengkap</label>
+                    <input type="text" name="nama" required placeholder="Contoh: Budi Santoso" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
                 </div>
-                <div class="relative group">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
-                    <input type="email" id="emailInput" name="email" required placeholder="name" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-slate-600">
-                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl overflow-hidden z-50"></div>
+                <div class="relative">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Alamat Email</label>
+                    <input type="email" id="emailInput" name="email" autocomplete="off" required placeholder="budi@mail.com" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
+                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl overflow-hidden z-50 shadow-2xl"></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Telegram Username</label>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Username Telegram</label>
                     <div class="relative">
                         <span class="absolute left-5 top-4 text-blue-500 font-bold">@</span>
-                        <input type="text" name="username_tele" required placeholder="username" class="w-full glass py-4 pl-10 pr-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
+                        <input type="text" name="username_tele" required placeholder="username_anda" class="w-full glass py-4 pl-10 pr-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">WhatsApp Secure Line</label>
-                    <input type="number" name="wa_nomor" required placeholder="628..." class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Nomor WhatsApp</label>
+                    <input type="number" name="wa_nomor" required placeholder="628123456789" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 ml-1 text-center">Account Age (Months)</label>
-                    <input type="hidden" name="wa_umur_val" id="wa_umur_val" value="1">
-                    <div class="age-picker glass rounded-2xl" id="agePicker"></div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 ml-1 text-center">Umur Akun (Bulan)</label>
+                    <input type="hidden" name="wa_umur_val" id="wa_umur_val" value="0">
+                    <div class="age-picker glass rounded-2xl" id="agePicker">
+                        </div>
+                    <p class="text-[10px] text-center mt-2 text-slate-500 italic">*Scroll atau Klik pada angka</p>
                 </div>
                 <div class="flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Line Type</label>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Jenis Akun</label>
                         <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none bg-[#0f172a]">
-                            <option value="WhatsApp Biasa">Standard Account</option>
-                            <option value="WhatsApp Bisnis">Business Protocol</option>
+                            <option value="WhatsApp Biasa">WhatsApp Standar</option>
+                            <option value="WhatsApp Bisnis">WhatsApp Bisnis</option>
                         </select>
                     </div>
                     <div class="mt-4">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Account Health</label>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Kesehatan Akun</label>
                         <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-[#0f172a]">
-                            <option value="Lancar">Optimized / Clean</option>
-                            <option value="Sering Delay">Slight Latency</option>
-                            <option value="Pernah Terblokir">Flagged Previously</option>
+                            <option value="Lancar">Lancar / Bersih</option>
+                            <option value="Sering Delay">Sering Delay</option>
+                            <option value="Pernah Terblokir">Pernah Terblokir</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-6">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Status Reason (Optional)</label>
-                    <textarea name="wa_alasan" rows="2" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"></textarea>
-                </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Catatan Tambahan (Opsional)</label>
+                <textarea name="wa_alasan" rows="2" placeholder="Sebutkan alasan jika akun pernah terblokir..." class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"></textarea>
+            </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-4 p-2">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Hardware Interface:</span>
-                    <div class="flex gap-4">
-                        <?php foreach(['Android', 'iOS', 'Other'] as $dev): ?>
-                        <label class="flex items-center space-x-3 cursor-pointer group">
-                            <input type="radio" name="perangkat" value="<?= $dev ?>" <?= $dev=='Android'?'checked':'' ?> class="hidden peer">
-                            <div class="w-5 h-5 border-2 border-slate-600 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all"></div>
-                            <span class="text-sm font-semibold text-slate-400 peer-checked:text-blue-400"><?= $dev ?></span>
-                        </label>
-                        <?php endforeach; ?>
-                    </div>
+            <div class="flex flex-wrap items-center justify-between gap-4 p-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Perangkat yang Digunakan:</span>
+                <div class="flex gap-4">
+                    <?php foreach(['Android', 'iOS', 'Lainnya'] as $dev): ?>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="radio" name="perangkat" value="<?= $dev ?>" <?= $dev=='Android'?'checked':'' ?> class="hidden peer">
+                        <div class="w-5 h-5 border-2 border-slate-600 rounded-full peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all"></div>
+                        <span class="text-sm font-semibold text-slate-400 peer-checked:text-blue-400"><?= $dev ?></span>
+                    </label>
+                    <?php endforeach; ?>
                 </div>
             </div>
 
-            <button type="submit" name="daftar" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase tracking-widest shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_40px_rgba(37,99,235,0.5)] transition-all transform active:scale-[0.98]">
-                Submit Application
+            <button type="submit" name="daftar" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black uppercase tracking-widest shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all transform active:scale-[0.98]">
+                Kirim Pendaftaran
             </button>
         </form>
     </div>
 
     <script>
+        // --- EMAIL AUTO-COMPLETE LOGIC ---
         const emailInput = document.getElementById('emailInput');
         const suggestionBox = document.getElementById('emailSuggestions');
-        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com'];
+        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'hotmail.com'];
 
         emailInput.addEventListener('input', (e) => {
             const val = e.target.value;
-            if (val.includes('@') && !val.split('@')[1].includes('.')) {
-                const name = val.split('@')[0];
-                suggestionBox.innerHTML = domains.map(d => `<div class="email-suggestion py-3 px-6 text-sm bg-[#0f172a]" onclick="selectEmail('${name}@${d}')">${name}<span class="text-blue-400 font-bold">@${d}</span></div>`).join('');
-                suggestionBox.classList.remove('hidden');
+            if (val.includes('@')) {
+                const parts = val.split('@');
+                const name = parts[0];
+                const domainPart = parts[1].toLowerCase();
+                
+                // Cari domain yang sesuai dengan ketikan setelah @
+                const filteredDomains = domains.filter(d => d.startsWith(domainPart));
+
+                if (filteredDomains.length > 0) {
+                    suggestionBox.innerHTML = filteredDomains.map(d => `
+                        <div class="email-suggestion py-3 px-6 text-sm" onclick="selectEmail('${name}@${d}')">
+                            ${name}<span class="text-blue-400 font-bold">@${d}</span>
+                        </div>
+                    `).join('');
+                    suggestionBox.classList.remove('hidden');
+                } else {
+                    suggestionBox.classList.add('hidden');
+                }
             } else {
                 suggestionBox.classList.add('hidden');
             }
@@ -191,36 +191,43 @@ if (isset($_POST['daftar'])) {
             suggestionBox.classList.add('hidden');
         }
 
+        // --- AGE PICKER LOGIC ---
         const picker = document.getElementById('agePicker');
         const valInput = document.getElementById('wa_umur_val');
         
         for(let i=0; i<=60; i++) {
             const item = document.createElement('div');
-            item.innerText = i + " Mo";
+            item.innerText = i + " Bln";
             item.dataset.val = i;
+            // Tambahkan event click agar bisa dipilih tanpa scroll
+            item.onclick = function() {
+                picker.scrollTo({
+                    top: i * 40,
+                    behavior: 'smooth'
+                });
+                updateActive(i);
+            };
             picker.appendChild(item);
         }
 
-        picker.addEventListener('scroll', () => {
+        function updateActive(val) {
             const items = picker.querySelectorAll('div');
-            let closest = null;
-            let minDiff = Infinity;
-
             items.forEach(item => {
-                const diff = Math.abs((item.offsetTop - picker.offsetTop) - picker.scrollTop - 40);
                 item.classList.remove('active');
-                if(diff < minDiff) {
-                    minDiff = diff;
-                    closest = item;
+                if(item.dataset.val == val) {
+                    item.classList.add('active');
+                    valInput.value = val;
                 }
             });
+        }
 
-            if(closest) {
-                closest.classList.add('active');
-                valInput.value = closest.dataset.val;
-            }
+        picker.addEventListener('scroll', () => {
+            const index = Math.round(picker.scrollTop / 40);
+            updateActive(index);
         });
-        picker.scrollTop = 1; 
+        
+        // Inisialisasi posisi awal
+        setTimeout(() => { picker.scrollTop = 0; updateActive(0); }, 100);
     </script>
 </body>
 </html>
