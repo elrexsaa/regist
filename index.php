@@ -8,7 +8,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
 
 // --- KONFIGURASI GMAIL (ISI DISINI) ---
 $my_gmail = "frankandrewwzz@gmail.com";
-$my_app_pass = "yyswjgeqopeukvz2agi5svrtub5bhxnm"; 
+$my_app_pass = "qxamtzotnzmfrxvi"; 
 
 // --- 1. KONEKSI DATABASE ---
 $url_db = getenv('MYSQL_URL');
