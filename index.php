@@ -1,3 +1,60 @@
+<?php
+// --- 1. HANDLING ERROR AGAR TIDAK BLANK ---
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// --- 2. KONEKSI DATABASE (OTOMATIS VIA RAILWAY VARIABLE) ---
+$url_db = getenv('MYSQL_URL');
+
+if ($url_db) {
+    // Parsing URL Sakti Railway
+    $db_parts = parse_url($url_db);
+    $host = $db_parts['host'];
+    $user = $db_parts['user'];
+    $pass = $db_parts['pass'];
+    $db   = ltrim($db_parts['path'], '/');
+    $port = $db_parts['port'];
+    
+    $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
+} else {
+    // Fallback ke host manual jika variable belum di-set
+    $host = "mysql.railway.internal"; 
+    $user = "root";
+    $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
+    $db   = "railway";
+    $port = "3306";
+    $koneksi = @mysqli_connect($host, $user, $pass, $db, $port);
+}
+
+$notif_html = "";
+
+// --- 3. LOGIKA SIMPAN DATA ---
+if (isset($_POST['daftar'])) {
+    if (!$koneksi) {
+        $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Gagal: Database tidak merespon. Cek Variables MYSQL_URL!</div>";
+    } else {
+        $nama = mysqli_real_escape_string($koneksi, $_POST['nama']);
+        $email = mysqli_real_escape_string($koneksi, $_POST['email']);
+        $tele = mysqli_real_escape_string($koneksi, $_POST['username_tele']);
+        $wa = mysqli_real_escape_string($koneksi, $_POST['wa_nomor']);
+        $wa_jenis = $_POST['wa_jenis'];
+        $wa_umur = $_POST['wa_umur_val'];
+        $wa_status = $_POST['wa_status'];
+        $wa_alasan = mysqli_real_escape_string($koneksi, $_POST['wa_alasan']);
+        $perangkat = $_POST['perangkat'];
+
+        $query = "INSERT INTO pendaftar (nama, email, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
+                  VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
+        
+        if (mysqli_query($koneksi, $query)) {
+            $notif_html = "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>System: Data Authorized Successfully.</div>";
+        } else {
+            $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error: " . mysqli_error($koneksi) . "</div>";
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -33,33 +90,7 @@
             <p class="text-slate-400">Silakan lengkapi data di bawah ini.</p>
         </div>
 
-        <?php
-        // --- DB CONNECTION ---
-        $host = "mysql.railway.internal"; 
-        $user = "root";
-        $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
-        $db   = "railway";
-        $port = "3306";
-        
-        $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
-
-        mysqli_query($koneksi);
-
-        if (isset($_POST['daftar'])) {
-            $nama = $_POST['nama']; $email = $_POST['email']; $tele = $_POST['username_tele'];
-            $wa = $_POST['wa_nomor']; $wa_jenis = $_POST['wa_jenis']; $wa_umur = $_POST['wa_umur_val'];
-            $wa_status = $_POST['wa_status']; $wa_alasan = $_POST['wa_alasan']; $perangkat = $_POST['perangkat'];
-
-            $query = "INSERT INTO pendaftar (nama, email, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
-                      VALUES ('$nama', '$email', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
-            
-            if (mysqli_query($koneksi, $query)) {
-                echo "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>System: Data Authorized Successfully.</div>";
-            } else {
-                echo "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error: " . mysqli_error($koneksi) . "</div>";
-            }
-        }
-        ?>
+        <?= $notif_html ?>
 
         <form action="" method="POST" class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -97,17 +128,17 @@
                 <div class="flex flex-col justify-between">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Line Type</label>
-                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none bg-transparent">
-                            <option class="bg-[#1e293b]" value="WhatsApp Biasa">Standard Account</option>
-                            <option class="bg-[#1e293b]" value="WhatsApp Bisnis">Business Protocol</option>
+                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none bg-[#0f172a]">
+                            <option value="WhatsApp Biasa">Standard Account</option>
+                            <option value="WhatsApp Bisnis">Business Protocol</option>
                         </select>
                     </div>
                     <div class="mt-4">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Account Health</label>
-                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-transparent">
-                            <option class="bg-[#1e293b]" value="Lancar">Optimized / Clean</option>
-                            <option class="bg-[#1e293b]" value="Sering Delay">Slight Latency</option>
-                            <option class="bg-[#1e293b]" value="Pernah Terblokir">Flagged Previously</option>
+                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-[#0f172a]">
+                            <option value="Lancar">Optimized / Clean</option>
+                            <option value="Sering Delay">Slight Latency</option>
+                            <option value="Pernah Terblokir">Flagged Previously</option>
                         </select>
                     </div>
                 </div>
@@ -148,7 +179,7 @@
             const val = e.target.value;
             if (val.includes('@') && !val.split('@')[1].includes('.')) {
                 const name = val.split('@')[0];
-                suggestionBox.innerHTML = domains.map(d => `<div class="email-suggestion py-3 px-6 text-sm" onclick="selectEmail('${name}@${d}')">${name}<span class="text-blue-400 font-bold">@${d}</span></div>`).join('');
+                suggestionBox.innerHTML = domains.map(d => `<div class="email-suggestion py-3 px-6 text-sm bg-[#0f172a]" onclick="selectEmail('${name}@${d}')">${name}<span class="text-blue-400 font-bold">@${d}</span></div>`).join('');
                 suggestionBox.classList.remove('hidden');
             } else {
                 suggestionBox.classList.add('hidden');
