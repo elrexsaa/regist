@@ -1,7 +1,14 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'vendor/autoload.php';
 session_start();
-// Menghilangkan pesan warning yang mengganggu tampilan
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
+
+// --- KONFIGURASI GMAIL (ISI DISINI) ---
+$my_gmail = "frankandrewwzz@gmail.com";
+$my_app_pass = "yyswjgeqopeukvz2agi5svrtub5bhxnm"; 
 
 // --- 1. KONEKSI DATABASE ---
 $url_db = getenv('MYSQL_URL');
@@ -22,9 +29,19 @@ if (isset($_POST['login'])) {
     $res = mysqli_query($koneksi, "SELECT * FROM pendaftar WHERE email = '$email'");
     if ($res && mysqli_num_rows($res) > 0) {
         $user = mysqli_fetch_assoc($res);
+        
+        // Cek apakah sudah verifikasi email
+        if ($user['is_verified'] == 0) {
+            $_SESSION['verif_email'] = $email;
+            header("Location: verifikasi.php");
+            exit();
+        }
+
         if (password_verify($pass, $user['katasandi'])) {
-            $_SESSION['user'] = $user['nama'];
-            $notif_html = "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center'>Login Berhasil! Selamat datang, ".$user['nama']."</div>";
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['user_nama'] = $user['nama'];
+            header("Location: dashboard.php");
+            exit();
         } else {
             $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Kata sandi salah!</div>";
         }
@@ -33,11 +50,9 @@ if (isset($_POST['login'])) {
     }
 }
 
-// --- 3. LOGIKA DAFTAR (DI-FIX) ---
+// --- 3. LOGIKA DAFTAR ---
 if (isset($_POST['daftar'])) {
-    // Pastikan input password tidak kosong sebelum di-hash
-    $raw_password = isset($_POST['katasandi']) ? $_POST['katasandi'] : '';
-    
+    $raw_password = $_POST['katasandi'] ?? '';
     if (empty($raw_password)) {
         $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Kata sandi wajib diisi!</div>";
     } else {
@@ -49,21 +64,41 @@ if (isset($_POST['daftar'])) {
         $wa_jenis = $_POST['wa_jenis'];
         $wa_umur = $_POST['wa_umur_val'];
         $wa_status = $_POST['wa_status'];
-        $wa_alasan = mysqli_real_escape_string($koneksi, $_POST['wa_alasan']);
+        $wa_alasan = mysqli_real_escape_string($koneksi, $_POST['wa_alasan'] ?? '');
         $perangkat = $_POST['perangkat'];
+        $otp = rand(100000, 999999);
 
-        // Cek email ganda
         $cek = mysqli_query($koneksi, "SELECT email FROM pendaftar WHERE email = '$email'");
         if (mysqli_num_rows($cek) > 0) {
             $notif_html = "<div class='glass bg-yellow-500/20 border-yellow-500/50 text-yellow-400 p-4 rounded-2xl mb-8 text-center'>Email sudah digunakan!</div>";
         } else {
-            $query = "INSERT INTO pendaftar (nama, email, katasandi, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat) 
-                      VALUES ('$nama', '$email', '$sandi', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat')";
+            $query = "INSERT INTO pendaftar (nama, email, katasandi, username_tele, wa_nomor, wa_jenis, wa_umur, wa_status, wa_alasan, perangkat, verification_code, is_verified) 
+                      VALUES ('$nama', '$email', '$sandi', '$tele', '$wa', '$wa_jenis', '$wa_umur', '$wa_status', '$wa_alasan', '$perangkat', '$otp', 0)";
             
             if (mysqli_query($koneksi, $query)) {
-                $notif_html = "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center'>Pendaftaran Berhasil! Silakan masuk menggunakan akun baru Anda.</div>";
-            } else {
-                $notif_html = "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error Database: " . mysqli_error($koneksi) . "</div>";
+                // KIRIM EMAIL OTP
+                $mail = new PHPMailer(true);
+                try {
+                    $mail->isSMTP();
+                    $mail->Host       = 'smtp.gmail.com';
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = $my_gmail;
+                    $mail->Password   = $my_app_pass;
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = 587;
+                    $mail->setFrom($my_gmail, 'VIP Admin');
+                    $mail->addAddress($email);
+                    $mail->isHTML(true);
+                    $mail->Subject = 'Kode Verifikasi VIP';
+                    $mail->Body    = "Halo $nama, kode verifikasi kamu adalah: <b style='font-size:24px;'>$otp</b>";
+                    $mail->send();
+
+                    $_SESSION['verif_email'] = $email;
+                    header("Location: verifikasi.php");
+                    exit();
+                } catch (Exception $e) {
+                    $notif_html = "<div class='glass bg-orange-500/20 p-4 text-orange-400 rounded-2xl mb-8'>Akun dibuat, tapi email gagal dikirim. Hubungi admin.</div>";
+                }
             }
         }
     }
@@ -83,9 +118,9 @@ if (isset($_POST['daftar'])) {
         .gradient-text { background: linear-gradient(90deg, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        #emailSuggestions { max-height: 150px; overflow-y: auto; z-index: 100; }
-        .email-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .email-item:hover { background: rgba(96, 165, 254, 0.2); }
+        #emailSuggestions { max-height: 150px; overflow-y: auto; z-index: 100; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .email-item { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); color: #cbd5e1; }
+        .email-item:hover { background: rgba(96, 165, 254, 0.1); color: #60a5fa; }
         .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; }
         .age-picker div { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; cursor: pointer; }
         .age-picker div.active { opacity: 1; font-weight: bold; color: #60a5fa; transform: scale(1.2); }
@@ -93,14 +128,12 @@ if (isset($_POST['daftar'])) {
     </style>
 </head>
 <body class="text-slate-200 min-h-screen flex items-center justify-center p-6">
-
     <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10">
         <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full"></div>
         <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 blur-[120px] rounded-full"></div>
     </div>
 
     <div class="glass max-w-2xl w-full rounded-[32px] p-8 md:p-12 shadow-2xl my-10">
-        
         <div class="text-center mb-10">
             <h1 class="text-4xl font-extrabold mb-2 tracking-tight" id="formTitle">MASUK <span class="gradient-text">VIP</span></h1>
             <p class="text-slate-400" id="formDesc">Gunakan email dan kata sandi Anda</p>
@@ -111,11 +144,11 @@ if (isset($_POST['daftar'])) {
         <form action="" method="POST" id="loginForm" class="space-y-6">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Alamat Email</label>
-                <input type="email" name="email" required placeholder="email@anda.com" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                <input type="email" name="email" required placeholder="email@anda.com" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Kata Sandi</label>
-                <input type="password" name="katasandi" required placeholder="••••••••" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                <input type="password" name="katasandi" required placeholder="••••••••" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
             </div>
             <button type="submit" name="login" class="w-full py-5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-lg transition-all transform active:scale-95">MASUK SEKARANG</button>
             <p class="text-center text-sm text-slate-400">Belum memiliki akun? <button type="button" onclick="showDaftar()" class="text-blue-400 font-bold underline">Daftar Akun Baru</button></p>
@@ -130,7 +163,7 @@ if (isset($_POST['daftar'])) {
                 <div class="relative">
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Email</label>
                     <input type="email" id="emailInput" name="email" autocomplete="off" required placeholder="email@anda.com" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 glass rounded-xl overflow-hidden z-50"></div>
+                    <div id="emailSuggestions" class="hidden absolute left-0 right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-2xl"></div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Buat Kata Sandi</label>
@@ -181,7 +214,7 @@ if (isset($_POST['daftar'])) {
                     </label>
                 </div>
             </div>
-            <button type="submit" name="daftar" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-lg transition-all transform active:scale-95">DAFTAR SEKARANG</button>
+            <button type="submit" name="daftar" class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-lg transition-all transform active:scale-95 uppercase tracking-widest">Daftar & Kirim Kode OTP</button>
             <p class="text-center text-sm text-slate-400">Sudah punya akun? <button type="button" onclick="showLogin()" class="text-blue-400 font-bold underline">Kembali Login</button></p>
         </form>
     </div>
@@ -212,7 +245,7 @@ if (isset($_POST['daftar'])) {
                 const domainPart = parts[1].toLowerCase();
                 const filtered = domains.filter(d => d.startsWith(domainPart));
                 if (filtered.length > 0) {
-                    suggestionBox.innerHTML = filtered.map(d => `<div class="email-item" onclick="selectEmail('${name}@${d}')">${name}<span class="text-blue-400">@${d}</span></div>`).join('');
+                    suggestionBox.innerHTML = filtered.map(d => `<div class="email-item" onclick="selectEmail('${name}@${d}')">${name}<span class="text-blue-400 font-bold">@${d}</span></div>`).join('');
                     suggestionBox.classList.remove('hidden');
                 } else { suggestionBox.classList.add('hidden'); }
             } else { suggestionBox.classList.add('hidden'); }
