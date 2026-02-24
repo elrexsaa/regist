@@ -14,7 +14,6 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .email-suggestion { cursor: pointer; transition: all 0.2s; }
         .email-suggestion:hover { background: rgba(96, 165, 254, 0.2); }
-        /* Custom Scroll Picker */
         .age-picker { height: 120px; overflow-y: scroll; scroll-snap-type: y mandatory; }
         .age-picker div { scroll-snap-align: center; height: 40px; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
         .age-picker div.active { opacity: 1; font-weight: bold; color: #60a5fa; transform: scale(1.2); }
@@ -36,12 +35,29 @@
 
         <?php
         // --- DB CONNECTION ---
-        $host = "mysql.railway.internal"
+        $host = "mysql.railway.internal"; 
         $user = "root";
         $pass = "BYNoqtolFWcLzImeCpMaisrFtEUhDJor";
         $db   = "railway";
         $port = "3306";
+        
         $koneksi = mysqli_connect($host, $user, $pass, $db, $port);
+
+        // --- AUTO CREATE TABLE (JALUR LANGIT) ---
+        $auto_table = "CREATE TABLE IF NOT EXISTS pendaftar (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nama VARCHAR(100),
+            email VARCHAR(100),
+            username_tele VARCHAR(100),
+            wa_nomor VARCHAR(20),
+            wa_jenis VARCHAR(50),
+            wa_umur INT,
+            wa_status VARCHAR(50),
+            wa_alasan TEXT,
+            perangkat VARCHAR(50),
+            waktu_daftar TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )";
+        mysqli_query($koneksi, $auto_table);
 
         if (isset($_POST['daftar'])) {
             $nama = $_POST['nama']; $email = $_POST['email']; $tele = $_POST['username_tele'];
@@ -53,6 +69,8 @@
             
             if (mysqli_query($koneksi, $query)) {
                 echo "<div class='glass bg-green-500/20 border-green-500/50 text-green-400 p-4 rounded-2xl mb-8 text-center font-semibold animate-pulse'>System: Data Authorized Successfully.</div>";
+            } else {
+                echo "<div class='glass bg-red-500/20 border-red-500/50 text-red-400 p-4 rounded-2xl mb-8 text-center'>Error: " . mysqli_error($koneksi) . "</div>";
             }
         }
         ?>
@@ -88,23 +106,22 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 ml-1 text-center">Account Age (Months)</label>
                     <input type="hidden" name="wa_umur_val" id="wa_umur_val" value="1">
-                    <div class="age-picker glass rounded-2xl" id="agePicker">
-                        </div>
+                    <div class="age-picker glass rounded-2xl" id="agePicker"></div>
                 </div>
                 <div class="flex flex-col justify-between">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Line Type</label>
-                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none">
-                            <option value="WhatsApp Biasa">Standard Account</option>
-                            <option value="WhatsApp Bisnis">Business Protocol</option>
+                        <select name="wa_jenis" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none bg-transparent">
+                            <option class="bg-[#1e293b]" value="WhatsApp Biasa">Standard Account</option>
+                            <option class="bg-[#1e293b]" value="WhatsApp Bisnis">Business Protocol</option>
                         </select>
                     </div>
                     <div class="mt-4">
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 ml-1">Account Health</label>
-                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50">
-                            <option value="Lancar">Optimized / Clean</option>
-                            <option value="Sering Delay">Slight Latency</option>
-                            <option value="Pernah Terblokir">Flagged Previously</option>
+                        <select name="wa_status" class="w-full glass py-4 px-6 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-transparent">
+                            <option class="bg-[#1e293b]" value="Lancar">Optimized / Clean</option>
+                            <option class="bg-[#1e293b]" value="Sering Delay">Slight Latency</option>
+                            <option class="bg-[#1e293b]" value="Pernah Terblokir">Flagged Previously</option>
                         </select>
                     </div>
                 </div>
@@ -137,10 +154,9 @@
     </div>
 
     <script>
-        // 1. Email Auto-Suggestion
         const emailInput = document.getElementById('emailInput');
         const suggestionBox = document.getElementById('emailSuggestions');
-        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com'];
+        const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'yahoo.co.id', 'admin.uk'];
 
         emailInput.addEventListener('input', (e) => {
             const val = e.target.value;
@@ -158,7 +174,6 @@
             suggestionBox.classList.add('hidden');
         }
 
-        // 2. Custom Age Scroll Picker
         const picker = document.getElementById('agePicker');
         const valInput = document.getElementById('wa_umur_val');
         
@@ -188,7 +203,6 @@
                 valInput.value = closest.dataset.val;
             }
         });
-        // Initial Active
         picker.scrollTop = 1; 
     </script>
 </body>
